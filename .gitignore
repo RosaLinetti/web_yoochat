@@ -1,0 +1,21 @@
+# Node modules
+backend/node_modules/
+yoochat/node_modules/
+
+# Logs
+*.log
+
+# Environment files
+backend/.env
+yoochat/.env
+
+# Build output
+backend/dist/
+yoochat/build/
+
+# VS Code settings
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db

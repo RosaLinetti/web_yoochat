@@ -1,0 +1,126 @@
+.home-wrapper {
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.logout-btn {
+  background-color: #ff4d4f;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.tabs {
+  display: flex;
+  margin: 15px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 3px solid transparent;
+  transition: 0.3s;
+}
+
+.tab.active {
+  border-color: #8948c2;
+  color: #8948c2;
+}
+
+.search-box {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
+}
+
+.list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  gap: 15px;
+}
+
+.username {
+  flex: 1;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.add-btn, .accept-btn, .decline-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-btn {
+  background-color: #8948c2;
+  color: #fff;
+}
+
+.accept-btn {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.decline-btn {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.self-text {
+  color: #555;
+  font-style: italic;
+}
+
+.empty-text {
+  text-align: center;
+  margin-top: 20px;
+  color: #999;
+}
