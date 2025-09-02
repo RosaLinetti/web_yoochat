@@ -9,7 +9,7 @@ const pool = new Pool({
   database: process.env.db_name,
 });
 
-// Existing validations
+// -------------------- Validations --------------------
 const isValidEmail = (email) => {
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|io|net|org|edu)$/;
   return emailRegex.test(email);
@@ -20,7 +20,7 @@ const isValidPassword = (password) => {
   return passwordRegex.test(password);
 };
 
-// User functions
+// -------------------- User Functions --------------------
 const findUserByEmail = async (email) => {
   const result = await pool.query(
     "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
@@ -45,9 +45,10 @@ const findUserIdByUsername = async (username) => {
   return result.rows[0]?.user_id;
 };
 
+// Get user by ID
 const findUserById = async (user_id) => {
   const result = await pool.query(
-    "SELECT user_id, username, profile_image, email FROM users WHERE user_id = $1",
+    "SELECT user_id, username, email, profile_image FROM users WHERE user_id = $1",
     [user_id]
   );
   return result.rows[0];
@@ -61,7 +62,7 @@ const createUser = async (username, email, password, profileImagePath = null) =>
   return result.rows[0];
 };
 
-// Friendship functions
+// -------------------- Friendship --------------------
 const checkFriendshipExists = async (user1_id, user2_id) => {
   const result = await pool.query(
     `SELECT * FROM friendship 
@@ -117,7 +118,6 @@ const unfriend = async (user1_id, user2_id) => {
   );
 };
 
-// Friends list
 const getFriendList = async (user_id) => {
   const result = await pool.query(
     `SELECT u.user_id, u.username, u.email, u.profile_image
@@ -130,7 +130,6 @@ const getFriendList = async (user_id) => {
   return result.rows;
 };
 
-// Pending friend requests
 const getPendingFriendRequests = async (receiver_id) => {
   const result = await pool.query(
     `SELECT f.user1_id AS sender_id, u.username, u.email, u.profile_image
@@ -142,10 +141,18 @@ const getPendingFriendRequests = async (receiver_id) => {
   return result.rows;
 };
 
-// Sent friend requests
+const getSentFriendRequests = async (sender_id) => {
+  const result = await pool.query(
+    `SELECT f.user2_id AS receiver_id, u.username, u.profile_image
+     FROM friendship f
+     JOIN users u ON u.user_id = f.user2_id
+     WHERE f.user1_id = $1 AND f.status = 'pending'`,
+    [sender_id]
+  );
+  return result.rows;
+};
 
-
-// Messaging
+// -------------------- Messaging --------------------
 const sendMessage = async (sender_id, receiver_id, content, is_media = false) => {
   const result = await pool.query(
     "INSERT INTO message (sender_id, receiver_id, content, is_media) VALUES ($1, $2, $3, $4) RETURNING message_id, message_time",
@@ -166,27 +173,19 @@ const getConversation = async (user1_id, user2_id) => {
   return result.rows;
 };
 
-// Blocked users
-
-
-// Optional: Calls (future)
-const addCallHistory = async (caller_id, receiver_id, call_type, duration = 0) => {
-  const result = await pool.query(
-    "INSERT INTO call (caller_id, receiver_id, call_type, duration) VALUES ($1, $2, $3, $4) RETURNING call_id, call_time",
-    [caller_id, receiver_id, call_type, duration]
-  );
-  return result.rows[0];
-};
-
-
-
+// -------------------- Search Users --------------------
 const searchUsers = async (searchText, currentUserId = null) => {
   try {
-    let values = [`%${searchText.toLowerCase()}%`];
+   
+    
+    if (!searchText || searchText.trim() === "") return [];
+
+    let values = ["%" + searchText.toLowerCase() + "%"];
+    
     let query = `
       SELECT user_id, username, profile_image
       FROM users
-      WHERE LOWER(username) LIKE $1
+      WHERE LOWER(username) ILIKE $1
     `;
 
     if (currentUserId) {
@@ -194,25 +193,18 @@ const searchUsers = async (searchText, currentUserId = null) => {
       values.push(currentUserId);
     }
 
-    query += " LIMIT 20";
+    query += " ORDER BY username ASC LIMIT 20";
+
     const result = await pool.query(query, values);
+    
     return result.rows;
   } catch (err) {
     console.error("searchUsers Model Error:", err);
     return [];
   }
 };
-const getSentFriendRequests = async (sender_id) => {
-  const result = await pool.query(
-    `SELECT f.user2_id AS receiver_id, u.username, u.profile_image
-     FROM friendship f
-     JOIN users u ON u.user_id = f.user2_id
-     WHERE f.user1_id = $1 AND f.status = 'pending'`,
-    [sender_id]
-  );
-  return result.rows;
-};
 
+// -------------------- Blocked Users --------------------
 const BlockedUser = {
   async block(blocker_id, blocked_id) {
     const result = await pool.query(
@@ -232,7 +224,7 @@ const BlockedUser = {
 
   async listByUser(blocker_id) {
     const result = await pool.query(
-      `SELECT u.user_id, u.username, u.profileimage
+      `SELECT u.user_id, u.username, u.profile_image
        FROM blockeduser b
        JOIN users u ON b.blocked_id = u.user_id
        WHERE b.blocker_id = $1`,
@@ -242,10 +234,18 @@ const BlockedUser = {
   },
 };
 
-
-
-
-
+// Update user info
+const updateUser = async (user_id, newUsername, newProfileImagePath) => {
+  const result = await pool.query(
+    `UPDATE users
+     SET username = COALESCE($2, username),
+         profile_image = COALESCE($3, profile_image)
+     WHERE user_id = $1
+     RETURNING user_id, username, email, profile_image`,
+    [user_id, newUsername, newProfileImagePath]
+  );
+  return result.rows[0];
+};
 
 module.exports = {
   isValidEmail,
@@ -253,8 +253,8 @@ module.exports = {
   findUserByEmail,
   findUserByUsername,
   findUserIdByUsername,
-  createUser,
   findUserById,
+  createUser,
   checkFriendshipExists,
   createFriendRequest,
   checkPendingFriendRequest,
@@ -267,9 +267,7 @@ module.exports = {
   getSentFriendRequests,
   sendMessage,
   getConversation,
-  addCallHistory,
   searchUsers,
   BlockedUser,
-  
+  updateUser
 };
-
