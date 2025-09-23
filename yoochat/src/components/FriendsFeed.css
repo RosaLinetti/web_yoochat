@@ -1,0 +1,160 @@
+/* Container for posts - grid layout for 3 posts per row */
+.friendsFeed {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 16px;
+  background-color: #f8f4ff; /* light purple background */
+  justify-items: center;
+}
+
+/* Post card styling */
+.postCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* ensures actions stay at bottom */
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid #e0d8f7;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(128, 0, 128, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+.postCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(128, 0, 128, 0.15);
+}
+
+/* Post header */
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.postHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.postAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #a569e3; /* purple border */
+}
+
+.postUsername {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #4b0082; /* deep purple */
+}
+
+.postTime {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Caption */
+.postCaption {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+/* Carousel container */
+.imageCarousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  position: relative;
+  width: 100%;
+  height: 250px; /* fixed height for all images */
+  
+  /* Hide scrollbar for WebKit browsers */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+.imageCarousel::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+
+.carouselImage:hover {
+  transform: scale(1.03);
+}
+
+/* Carousel indicator (dots) */
+.carouselIndicator {
+  text-align: center;
+  margin-top: 6px;
+}
+
+.carouselIndicator .dot {
+  height: 8px;
+  width: 8px;
+  margin: 0 3px;
+  background-color: #c0a3f7;
+  border-radius: 50%;
+  display: inline-block;
+  transition: background-color 0.3s;
+}
+
+.carouselIndicator .dot.active {
+  background-color: #6a0dad; /* dark purple for active */
+}
+
+/* Actions */
+.postActions {
+  display: flex;
+  justify-content: flex-start; /* keeps buttons aligned left */
+  gap: 12px;
+  margin-top: auto; /* push actions to the bottom of the card */
+  flex-wrap: nowrap; /* no wrapping */
+}
+
+
+.postActions button {
+  background: #f3e6ff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #6a0dad;
+  transition: background 0.2s ease;
+  white-space: nowrap; /* ensure button text doesn't break */
+}
+
+
+
+.postActions button:hover {
+  background: #e0c6ff;
+  transform: translateY(-1px);
+}
+
+/* Reactions count */
+.postReactions {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* Single image styling */
+.singleImage {
+  width: 100%;
+  height: 320px;
+  border-radius: 16px;
+  object-fit: cover;
+}

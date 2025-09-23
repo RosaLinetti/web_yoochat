@@ -1,0 +1,81 @@
+/* src/components/EditProfile.css */
+
+.editProfileForm {
+  max-width: 480px; /* slightly bigger to fit inputs */
+  margin: 40px auto;
+  padding: 30px; /* more padding for spacious look */
+  background: #f3f0fa; /* soft purple background */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.editProfileForm h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #5a2ea6; /* deep purple for title */
+}
+
+.editProfileForm p {
+  text-align: center;
+  color: #5a2ea6;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.editProfileForm form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.editProfileForm label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #5a2ea6; /* purple labels */
+}
+
+.editProfileForm input[type="text"],
+.editProfileForm input[type="file"] {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  box-sizing: border-box; /* ensure input fits inside form */
+}
+
+.editProfileForm input[type="text"]:focus,
+.editProfileForm input[type="file"]:focus {
+  border-color: #7e57c2;
+  box-shadow: 0 0 5px rgba(126, 87, 194, 0.3);
+}
+
+.editProfileForm img {
+  display: block;
+  margin: 15px auto;
+  width: 130px; /* bigger circle */
+  height: 130px;
+  border-radius: 50%; /* perfect circle */
+  border: 3px solid #7e57c2;
+  object-fit: cover; /* prevent oval distortion */
+}
+
+.editProfileForm button {
+  background-color: #7e57c2;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.editProfileForm button:hover {
+  background-color: #5a2ea6;
+  transform: translateY(-2px);
+}

@@ -1,0 +1,26 @@
+/* Container for all friend action buttons */
+.friend-action {
+  display: flex;
+  gap: 8px;
+}
+
+/* Common purple button style */
+.purple-btn {
+  background-color: #9333ea;  /* main purple */
+  color: #fff;
+  padding: 6px 20px;           /* oval shape */
+  border: none;
+  border-radius: 999px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.purple-btn:hover {
+  background-color: #7c2be2;   /* darker purple on hover */
+}
+
+/* Smaller padding for pending buttons if needed */
+.purple-btn-small {
+  padding: 6px 16px;
+}

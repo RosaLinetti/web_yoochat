@@ -18,10 +18,8 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 const routes = require("./routes/routes");
 app.use("/", routes);

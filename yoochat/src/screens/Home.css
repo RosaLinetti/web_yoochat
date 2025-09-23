@@ -1,126 +1,92 @@
-.home-wrapper {
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.header-bar {
+.homeContainer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.avatar {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.logout-btn {
-  background-color: #ff4d4f;
-  color: #fff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.tabs {
-  display: flex;
-  margin: 15px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.tab {
-  flex: 1;
-  padding: 10px;
-  cursor: pointer;
-  text-align: center;
-  font-weight: bold;
-  border-bottom: 3px solid transparent;
-  transition: 0.3s;
-}
-
-.tab.active {
-  border-color: #8948c2;
-  color: #8948c2;
-}
-
-.search-box {
+  flex-direction: row;
+  height: 100vh;
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin-bottom: 15px;
+  overflow: hidden;
 }
 
-.list-section {
+/* Left Sidebar */
+.sidebar {
+  width: 60px; 
+  border-right: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+  background: #9333ea;
+}
+
+/* Middle Panel */
+.middlePanel {
+  width: 400px; 
+  max-width: 420px; 
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  background: #f9f9f9;
+  padding: 16px;
+}
+
+/* Right Panel (chat window) */
+.chatPanel {
+  flex: 1; 
+  border: 20px solid #9333ea; 
+  border-radius: 0px;        
+  background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
 }
 
-.item-card {
-  display: flex;
-  align-items: center;
-  padding: 12px 15px;
-  border-radius: 10px;
-  background: #f5f5f5;
-  gap: 15px;
+
+/* Search input */
+.searchInput {
+  width: 90%;
+  padding: 8px 12px;
+  margin: 12px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
 }
 
-.username {
-  flex: 1;
+.searchInput:focus {
+  border-color: #9333ea;
+  box-shadow: 0 0 5px rgba(147, 51, 234, 0.4);
+}
+
+/* Pending counts */
+.pendingCounts {
+  margin-bottom: 12px;
   font-weight: bold;
-  font-size: 16px;
-}
-
-.add-btn, .accept-btn, .decline-btn {
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.add-btn {
-  background-color: #8948c2;
-  color: #fff;
-}
-
-.accept-btn {
-  background-color: #4caf50;
-  color: #fff;
-}
-
-.decline-btn {
-  background-color: #f44336;
-  color: #fff;
-}
-
-.btn-row {
-  display: flex;
-  gap: 8px;
-}
-
-.self-text {
   color: #555;
-  font-style: italic;
 }
 
-.empty-text {
-  text-align: center;
-  margin-top: 20px;
-  color: #999;
+.feedPanel {
+  flex: 1;
+  background: #fafafa;
+  overflow-y: auto;
+  padding: 20px;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .homeContainer {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .middlePanel {
+    width: 100%;
+    max-width: 100%;
+    padding: 8px;
+  }
+
+  .chatPanel {
+    width: 100%;
+    height: 200px;
+  }
+}
+    

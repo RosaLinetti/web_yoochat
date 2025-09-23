@@ -2,13 +2,13 @@ const { encryptHill, decryptHill } = require("../Cryptography/Hill_Cipher");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/model");
-
+const { pool } = require("../models/model"); 
 
 
 const hillKey = process.env.HILL_KEY;
-if (!hillKey) throw new Error("HILL_KEY is not defined in environment variables");
+if (!hillKey) throw new Error("HILL_KEY is not defined");
 
-// ---------------------- Registration ----------------------
+// -------------------- Registration --------------------
 const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -16,13 +16,10 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "Missing username, email, or password" });
 
     if (!userModel.isValidEmail(email))
-      return res.status(400).json({ message: "Invalid email address" });
+      return res.status(400).json({ message: "Invalid email" });
 
     if (!userModel.isValidPassword(password))
-      return res.status(400).json({
-        message:
-          "Password must be at least 6 characters long and include uppercase, lowercase, and a digit",
-      });
+      return res.status(400).json({ message: "Password must be at least 6 characters long and include uppercase, lowercase, and a digit" });
 
     const existingUsername = await userModel.findUserByUsername(username);
     if (existingUsername) return res.status(400).json({ message: "Username already taken" });
@@ -34,14 +31,8 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const profileImagePath = req.file ? req.file.path : null;
 
-    const user = await userModel.createUser(
-      username,
-      normalizedEmail,
-      hashedPassword,
-      profileImagePath
-    );
+    const user = await userModel.createUser(username, normalizedEmail, hashedPassword, profileImagePath);
 
-    
     return res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -57,8 +48,7 @@ const register = async (req, res) => {
   }
 };
 
-
-// ---------------------- Login ----------------------
+// -------------------- Login --------------------
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -88,7 +78,7 @@ const login = async (req, res) => {
   }
 };
 
-// ---------------------- Get User ----------------------
+// -------------------- Get User By Username --------------------
 const getUserByUsername = async (req, res) => {
   try {
     const { username } = req.params;
@@ -101,19 +91,49 @@ const getUserByUsername = async (req, res) => {
   }
 };
 
-// ---------------------- Friend Requests ----------------------
+// -------------------- Search Users --------------------
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query; // Get search query from URL parameters
+    
+    // Validate search query
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ 
+        message: "Search query must be at least 2 characters long" 
+      });
+    }
+    
+    const searchTerm = q.trim();
+    
+    // Get current user ID if authenticated (optional - excludes current user from results)
+    const currentUserId = req.user ? req.user.user_id : null;
+    
+    // Use the existing model function
+    const users = await userModel.searchUsers(searchTerm, currentUserId);
+    
+    return res.status(200).json({
+      success: true,
+      message: users.length > 0 ? "Users found" : "No users found",
+      users: users,
+      count: users.length
+    });
+    
+  } catch (err) {
+    console.error("SearchUsers Controller Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// -------------------- Friendship --------------------
 const sendFriendRequest = async (req, res) => {
   try {
     const sender_id = req.user.user_id;
     const { receiver_id } = req.body;
-    if (!receiver_id)
-      return res.status(400).json({ message: "Missing receiver_id" });
-    if (sender_id === receiver_id)
-      return res.status(400).json({ message: "Cannot send friend request to yourself" });
+    if (!receiver_id) return res.status(400).json({ message: "Missing receiver_id" });
+    if (sender_id === receiver_id) return res.status(400).json({ message: "Cannot send friend request to yourself" });
 
-    const existing = await userModel.checkFriendshipExists(sender_id, receiver_id);
-    if (existing)
-      return res.status(400).json({ message: "Friendship already exists or pending" });
+    const exists = await userModel.checkFriendshipExists(sender_id, receiver_id);
+    if (exists) return res.status(400).json({ message: "Friendship already exists or pending" });
 
     await userModel.createFriendRequest(sender_id, receiver_id);
     return res.status(200).json({ message: "Friend request sent successfully" });
@@ -157,7 +177,6 @@ const declineFriendRequest = async (req, res) => {
   }
 };
 
-// ---------------------- Cancel & Unfriend ----------------------
 const cancelFriendRequest = async (req, res) => {
   try {
     const sender_id = req.user.user_id;
@@ -181,8 +200,8 @@ const unfriend = async (req, res) => {
     const { user2_id } = req.body;
     if (!user2_id) return res.status(400).json({ message: "Missing user2_id" });
 
-    const existing = await userModel.checkFriendshipExists(user1_id, user2_id);
-    if (!existing) return res.status(400).json({ message: "No friendship found to unfriend" });
+    const exists = await userModel.checkFriendshipExists(user1_id, user2_id);
+    if (!exists) return res.status(400).json({ message: "No friendship found to unfriend" });
 
     await userModel.unfriend(user1_id, user2_id);
     return res.status(200).json({ message: "Unfriended successfully" });
@@ -192,7 +211,6 @@ const unfriend = async (req, res) => {
   }
 };
 
-// ---------------------- List Friends / Requests ----------------------
 const listFriends = async (req, res) => {
   try {
     const { username } = req.params;
@@ -200,10 +218,7 @@ const listFriends = async (req, res) => {
     if (!user_id) return res.status(404).json({ message: "User not found" });
 
     const friends = await userModel.getFriendList(user_id);
-    return res.status(200).json({
-      message: friends.length ? "Friends list fetched" : "No friends found",
-      friends,
-    });
+    return res.status(200).json({ message: friends.length ? "Friends list fetched" : "No friends found", friends });
   } catch (err) {
     console.error("ListFriends Error:", err);
     return res.status(500).json({ message: "Server Error" });
@@ -232,17 +247,15 @@ const getSentRequests = async (req, res) => {
   }
 };
 
-// ---------------------- Messaging ----------------------
+// -------------------- Messaging --------------------
 const sendMessage = async (req, res) => {
   try {
     const sender_id = req.user.user_id;
     const { receiver_id, content, is_media = false } = req.body;
-    if (!receiver_id || !content)
-      return res.status(400).json({ message: "Missing receiver_id or content" });
+    if (!receiver_id || !content) return res.status(400).json({ message: "Missing receiver_id or content" });
 
     const friendship = await userModel.checkFriendshipExists(sender_id, receiver_id);
-    if (!friendship)
-      return res.status(403).json({ message: "You are not friends with this user" });
+    if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
 
     const encryptedMessage = encryptHill(content, hillKey);
     await userModel.sendMessage(sender_id, receiver_id, encryptedMessage, is_media);
@@ -260,8 +273,7 @@ const getConversation = async (req, res) => {
     const friend_id = parseInt(req.params.friend_id, 10);
 
     const friendship = await userModel.checkFriendshipExists(user1_id, friend_id);
-    if (!friendship)
-      return res.status(403).json({ message: "You are not friends with this user" });
+    if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
 
     const conversation = await userModel.getConversation(user1_id, friend_id);
     const decryptedConversation = conversation.map((msg) => ({
@@ -279,35 +291,21 @@ const getConversation = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
-const searchUsers = async (req, res) => {
-  try {
-    const searchText = req.query.search || "";
-    if (!searchText.trim()) return res.json({ users: [] });
 
-    const users = await userModel.searchUsers(searchText, req.user.user_id);
-    res.json({ users });
-  } catch (err) {
-    console.error("SearchUsers Controller Error:", err);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
-// ---------------------- Block / Unblock Users ----------------------
+// -------------------- Block / Unblock --------------------
 const blockUser = async (req, res) => {
   try {
     const blocker_id = req.user.user_id;
     const { blocked_id } = req.body;
-
-    if (!blocked_id)
-      return res.status(400).json({ message: "Missing blocked_id" });
-
-    if (blocker_id === blocked_id)
-      return res.status(400).json({ message: "You cannot block yourself" });
+    if (!blocked_id) return res.status(400).json({ message: "Missing blocked_id" });
 
     const blocked = await userModel.BlockedUser.block(blocker_id, blocked_id);
     return res.status(200).json({ message: "User blocked successfully", blocked });
   } catch (err) {
-    console.error("blockUser error:", err);
+    if (err.message === "Cannot block yourself" || err.message === "User already blocked") {
+      return res.status(400).json({ message: err.message });
+    }
+    console.error("blockUser Error:", err);
     return res.status(500).json({ message: "Server Error" });
   }
 };
@@ -316,45 +314,303 @@ const unblockUser = async (req, res) => {
   try {
     const blocker_id = req.user.user_id;
     const { blocked_id } = req.body;
-
-    if (!blocked_id)
-      return res.status(400).json({ message: "Missing blocked_id" });
+    if (!blocked_id) return res.status(400).json({ message: "Missing blocked_id" });
 
     const unblocked = await userModel.BlockedUser.unblock(blocker_id, blocked_id);
     return res.status(200).json({ message: "User unblocked successfully", unblocked });
   } catch (err) {
-    console.error("unblockUser error:", err);
+    if (err.message === "Blocked user not found") {
+      return res.status(404).json({ message: err.message });
+    }
+    console.error("unblockUser Error:", err);
     return res.status(500).json({ message: "Server Error" });
   }
 };
 
 const listBlockedUsers = async (req, res) => {
   try {
-    const blocker_id = req.user.user_id; // from token
-
-    
+    const blocker_id = req.user.user_id;
     const blockedUsers = await userModel.BlockedUser.listByUser(blocker_id);
+    const count = blockedUsers.length;
 
-    res.status(200).json(blockedUsers);
-  } catch (error) {
-    console.error("Error listing blocked users:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(200).json({ success: true, blockedUsers, count });
+  } catch (err) {
+    console.error("listBlockedUsers Error:", err);
+    return res.status(500).json({ message: "Server Error" });
   }
 };
 
 
 
+const updateUserProfile = async (req, res) => {
+  try {
+    const user_id = req.user.user_id; // from JWT
+    const { username } = req.body;
+    const profileImagePath = req.file ? req.file.path : null;
 
+    // Optional: validate username (example: 3-20 chars)
+    if (username && (username.length < 3 || username.length > 20)) {
+      return res.status(400).json({ message: "Username must be 3-20 characters long" });
+    }
 
+    const updatedUser = await userModel.updateUser(user_id, username, profileImagePath);
 
+    return res.status(200).json({
+      message: "Profile updated successfully!",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("UpdateUserProfile Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
 
+// ---------------------- Get My Profile ----------------------
+const getMyProfile = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
 
+    const user = await userModel.findUserById(user_id);
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({
+      user_id: user.user_id,
+      username: user.username,
+      email: user.email,
+      profileImage: user.profile_image || null,
+    });
+  } catch (err) {
+    console.error("GetMyProfile Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+// Create a post
+const createPost = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { caption } = req.body;
+    const files = req.files || [];
+
+    if (files.length === 0) {
+      return res.status(400).json({ message: "Please upload at least one image." });
+    }
+
+    // Insert post
+    const postResult = await pool.query(
+      "INSERT INTO posts (user_id, caption) VALUES ($1, $2) RETURNING *",
+      [user_id, caption || ""]
+    );
+    const post = postResult.rows[0];
+
+    // Insert images
+    for (let file of files) {
+      await pool.query(
+        "INSERT INTO post_images (post_id, image_url) VALUES ($1, $2)",
+        [post.post_id, file.path]
+      );
+    }
+
+    return res.status(201).json({ message: "Post created successfully", post_id: post.post_id });
+  } catch (err) {
+    console.error("createPost Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get all posts from friends
+const getFriendsPosts = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    // Friend IDs
+    const friendsResult = await pool.query(
+      `SELECT CASE
+          WHEN user1_id = $1 THEN user2_id
+          ELSE user1_id
+        END AS friend_id
+       FROM friendship
+       WHERE (user1_id = $1 OR user2_id = $1) AND status = 'accepted'`,
+      [user_id]
+    );
+    const friendIds = friendsResult.rows.map(r => r.friend_id);
+
+    if (friendIds.length === 0) return res.json({ posts: [] });
+
+    // Posts
+    const postsResult = await pool.query(
+      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+       FROM posts p
+       JOIN users u ON p.user_id = u.user_id
+       WHERE p.user_id = ANY($1::int[])
+       ORDER BY p.created_at DESC`,
+      [friendIds]
+    );
+    const posts = postsResult.rows;
+
+    // Add images & reactions
+    for (let post of posts) {
+      const imagesResult = await pool.query(
+        "SELECT image_url FROM post_images WHERE post_id = $1",
+        [post.post_id]
+      );
+      post.images = imagesResult.rows.map(r => r.image_url);
+
+      const reactionsResult = await pool.query(
+        "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+        [post.post_id]
+      );
+      post.reactions = reactionsResult.rows;
+    }
+
+    return res.json({ posts });
+  } catch (err) {
+    console.error("getFriendsPosts Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get a single post by ID
+const getPostById = async (req, res) => {
+  try {
+    const { post_id } = req.params;
+
+    const postResult = await pool.query(
+      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+       FROM posts p
+       JOIN users u ON p.user_id = u.user_id
+       WHERE p.post_id = $1`,
+      [post_id]
+    );
+
+    if (postResult.rows.length === 0) return res.status(404).json({ message: "Post not found" });
+
+    const post = postResult.rows[0];
+
+    const imagesResult = await pool.query(
+      "SELECT image_url FROM post_images WHERE post_id = $1",
+      [post.post_id]
+    );
+    post.images = imagesResult.rows.map(r => r.image_url);
+
+    const reactionsResult = await pool.query(
+      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      [post.post_id]
+    );
+    post.reactions = reactionsResult.rows;
+
+    return res.json({ post });
+  } catch (err) {
+    console.error("getPostById Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get logged-in user's posts
+const getMyPosts = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const postsResult = await pool.query(
+      "SELECT post_id, caption, created_at FROM posts WHERE user_id = $1 ORDER BY created_at DESC",
+      [user_id]
+    );
+
+    const posts = postsResult.rows;
+
+    for (let post of posts) {
+      const imagesResult = await pool.query(
+        "SELECT image_url FROM post_images WHERE post_id = $1",
+        [post.post_id]
+      );
+      post.images = imagesResult.rows.map(r => r.image_url);
+
+      const reactionsResult = await pool.query(
+        "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+        [post.post_id]
+      );
+      post.reactions = reactionsResult.rows;
+    }
+
+    return res.json({ posts });
+  } catch (err) {
+    console.error("getMyPosts Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Add a comment
+const addComment = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { post_id, comment_text } = req.body;
+
+    if (!comment_text || !post_id)
+      return res.status(400).json({ message: "Missing post_id or comment_text" });
+
+    const result = await pool.query(
+      "INSERT INTO post_comments (post_id, user_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
+      [post_id, user_id, comment_text]
+    );
+
+    return res.status(201).json({ message: "Comment added", comment: result.rows[0] });
+  } catch (err) {
+    console.error("addComment Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get comments for a post
+const getComments = async (req, res) => {
+  try {
+    const { post_id } = req.params;
+    const result = await pool.query(
+      `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_image
+       FROM post_comments c
+       JOIN users u ON c.user_id = u.user_id
+       WHERE c.post_id = $1
+       ORDER BY c.created_at ASC`,
+      [post_id]
+    );
+
+    return res.json({ comments: result.rows });
+  } catch (err) {
+    console.error("getComments Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const reactToPostController = async (req, res) => {
+  try {
+    const user_id = req.user.user_id; // from verifyToken
+    const { post_id, reaction_type } = req.body;
+
+    if (!post_id || !reaction_type) {
+      return res.status(400).json({ message: "Missing post_id or reaction_type" });
+    }
+
+    // Call the model function
+    const result = await reactToPost(user_id, post_id, reaction_type);
+
+    // Optional: return updated reactions for frontend
+    const reactionsResult = await pool.query(
+      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      [post_id]
+    );
+
+    return res.json({ ...result, reactions: reactionsResult.rows });
+  } catch (err) {
+    console.error("reactToPostController Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 module.exports = {
   register,
   login,
   getUserByUsername,
+  searchUsers,
   sendFriendRequest,
   acceptFriendRequest,
   declineFriendRequest,
@@ -365,8 +621,17 @@ module.exports = {
   getSentRequests,
   sendMessage,
   getConversation,
-  searchUsers,
   blockUser,
   unblockUser,
   listBlockedUsers,
+  updateUserProfile,
+  getMyProfile,
+  createPost,
+  getFriendsPosts,
+  getPostById,
+  getMyPosts,
+  reactToPost,
+  addComment,
+  getComments,
+  reactToPostController
 };

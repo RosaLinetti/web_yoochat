@@ -1,0 +1,63 @@
+.iconMenu {
+  width: 60px;
+  background: #9333ea;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* logo and icons at top */
+  align-items: center;
+  padding: 15px 0;
+  transition: width 0.3s;
+}
+
+.iconMenu.collapsed {
+  width: 50px;
+}
+
+/* Logo at the top */
+.logo {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  margin-top: 22px;
+
+}
+
+/* Icons container with flex-grow to fill space */
+.menuIcons {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  font-size: 22px;
+  cursor: pointer;
+  flex-grow: 1; /* pushes bottom icon down */
+}
+
+/* Active icon highlight */
+.menuIcons span.activeIcon {
+  transform: scale(1.6);
+  color: #fff200;
+}
+
+/* Bottom settings icon */
+.bottomIcon {
+  font-size: 22px;
+  cursor: pointer;
+  margin-bottom: 10px; /* optional padding from bottom */
+
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .iconMenu {
+    width: 50px;
+    padding: 10px 0;
+  }
+  .menuIcons {
+    gap: 18px;
+    font-size: 20px;
+  }
+  .bottomIcon {
+    font-size: 20px;
+  }
+}

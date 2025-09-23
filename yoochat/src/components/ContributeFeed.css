@@ -1,0 +1,127 @@
+/* src/components/ContributeFeed.css */
+
+.contributeFeed {
+  padding: 20px;
+  background-color: #f3f0fb; /* light purple background */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Profile Header */
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: linear-gradient(90deg, #6a0dad, #8e2de2);
+  color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profileHeader .profilePic {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+
+/* Add Post Form */
+.addPostForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s;
+}
+
+.addPostForm:hover {
+  transform: translateY(-2px);
+}
+
+.addPostForm textarea {
+  resize: none;
+  height: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d3ccee;
+  font-size: 14px;
+  transition: border 0.2s;
+}
+
+.addPostForm textarea:focus {
+  border-color: #8e2de2;
+  outline: none;
+}
+
+.addPostForm input[type="file"] {
+  font-size: 14px;
+}
+
+.addPostForm button {
+  align-self: flex-start;
+  padding: 10px 25px;
+  background: #6a0dad;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.addPostForm button:hover:not(:disabled) {
+  background: #8e2de2;
+  transform: scale(1.05);
+}
+
+.addPostForm button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Posts Grid */
+.postGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+/* Individual Post Card */
+.postItem {
+  position: relative;
+  overflow: hidden;
+  border-radius: 15px;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.postItem:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.postItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 15px;
+}
+
+/* Empty state */
+.noPosts {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  margin-top: 20px;
+}
