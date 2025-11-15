@@ -8,6 +8,10 @@ import SettingsPanel from "../components/SettingsPanel";
 import EditProfile from "../components/EditProfile";
 import ContributeFeed from "../components/ContributeFeed";
 import FriendsFeed from "../components/FriendsFeed"; 
+import NotificationsPage from "../components/NotificationsPage";
+import MyPostsFeed from "../components/MyPostsFeed"; 
+
+
 
 import "./Home.css";
 
@@ -158,6 +162,10 @@ function Home() {
         <div className="feedPanel">
           <FriendsFeed token={token} />
         </div>
+        ) : activeSidebar === "home" ? (
+  <div className="middlePanel">
+    <MyPostsFeed />
+  </div>
       ) : (
         <>
           <div className="middlePanel">
@@ -209,6 +217,8 @@ function Home() {
                   </>
                 )}
               </>
+              ) : activeSidebar === "notifications" ? (
+              <NotificationsPage />
             ) : activeSidebar === "settings" ? (
               <SettingsPanel onSelectSetting={setSelectedSetting} />
             ) : (

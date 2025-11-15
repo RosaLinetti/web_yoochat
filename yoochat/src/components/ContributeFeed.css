@@ -1,13 +1,19 @@
-/* src/components/ContributeFeed.css */
+html, body, #root {
+  height: 100%; /* ensure full height for scrolling */
+  margin: 0;
+  padding: 0;
+}
 
 .contributeFeed {
   padding: 20px;
-  background-color: #f3f0fb; /* light purple background */
-  min-height: 100%;
+  background-color: #f3f0fb;
   display: flex;
   flex-direction: column;
   gap: 25px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  height: 100vh;      /* full viewport height */
+  overflow-y: auto;    /* vertical scroll */
+  box-sizing: border-box;
 }
 
 /* Profile Header */
@@ -39,26 +45,15 @@
   background: #fff;
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s;
-}
-
-.addPostForm:hover {
-  transform: translateY(-2px);
 }
 
 .addPostForm textarea {
   resize: none;
-  height: 20px;
+  height: 50px;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #d3ccee;
   font-size: 14px;
-  transition: border 0.2s;
-}
-
-.addPostForm textarea:focus {
-  border-color: #8e2de2;
-  outline: none;
 }
 
 .addPostForm input[type="file"] {
@@ -87,6 +82,20 @@
   cursor: not-allowed;
 }
 
+/* Preview uploaded images */
+.previewImages {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-top: 10px;
+}
+
+.previewImages img {
+  height: 80px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
 /* Posts Grid */
 .postGrid {
   display: grid;
@@ -101,13 +110,7 @@
   border-radius: 15px;
   background: #fff;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.postItem:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .postItem img {
@@ -118,7 +121,6 @@
   border-radius: 15px;
 }
 
-/* Empty state */
 .noPosts {
   text-align: center;
   color: #888;

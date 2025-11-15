@@ -3,6 +3,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/model");
 const { pool } = require("../models/model"); 
+const reactToPost = require("../models/model");
+
 
 
 const hillKey = process.env.HILL_KEY;
@@ -124,7 +126,6 @@ const searchUsers = async (req, res) => {
   }
 };
 
-// -------------------- Friendship --------------------
 const sendFriendRequest = async (req, res) => {
   try {
     const sender_id = req.user.user_id;
@@ -135,7 +136,9 @@ const sendFriendRequest = async (req, res) => {
     const exists = await userModel.checkFriendshipExists(sender_id, receiver_id);
     if (exists) return res.status(400).json({ message: "Friendship already exists or pending" });
 
+    // Model handles creating request AND notification
     await userModel.createFriendRequest(sender_id, receiver_id);
+
     return res.status(200).json({ message: "Friend request sent successfully" });
   } catch (err) {
     console.error("SendFriendRequest Error:", err);
@@ -152,7 +155,9 @@ const acceptFriendRequest = async (req, res) => {
     const pending = await userModel.checkPendingFriendRequest(sender_id, receiver_id);
     if (!pending) return res.status(400).json({ message: "No pending friend request found" });
 
+    // Model handles accepting request AND notification
     await userModel.acceptFriendRequest(sender_id, receiver_id);
+
     return res.status(200).json({ message: "Friend request accepted" });
   } catch (err) {
     console.error("AcceptFriendRequest Error:", err);
@@ -169,13 +174,16 @@ const declineFriendRequest = async (req, res) => {
     const pending = await userModel.checkPendingFriendRequest(sender_id, receiver_id);
     if (!pending) return res.status(400).json({ message: "No pending friend request found to decline" });
 
+    // Model handles declining request AND notification
     await userModel.declineFriendRequest(sender_id, receiver_id);
+
     return res.status(200).json({ message: "Friend request declined successfully" });
   } catch (err) {
     console.error("DeclineFriendRequest Error:", err);
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 const cancelFriendRequest = async (req, res) => {
   try {
@@ -418,12 +426,11 @@ const createPost = async (req, res) => {
   }
 };
 
-// Get all posts from friends
 const getFriendsPosts = async (req, res) => {
   try {
     const user_id = req.user.user_id;
 
-    // Friend IDs
+    // Get friend IDs
     const friendsResult = await pool.query(
       `SELECT CASE
           WHEN user1_id = $1 THEN user2_id
@@ -437,18 +444,23 @@ const getFriendsPosts = async (req, res) => {
 
     if (friendIds.length === 0) return res.json({ posts: [] });
 
-    // Posts
+    // Get posts along with whether current user liked
     const postsResult = await pool.query(
-      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+      `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
+              EXISTS (
+                SELECT 1 FROM post_reactions pr
+                WHERE pr.post_id = p.post_id AND pr.user_id = $2
+              ) AS "userLiked"
        FROM posts p
        JOIN users u ON p.user_id = u.user_id
        WHERE p.user_id = ANY($1::int[])
        ORDER BY p.created_at DESC`,
-      [friendIds]
+      [friendIds, user_id]
     );
+
     const posts = postsResult.rows;
 
-    // Add images & reactions
+    // Add images & reactions count
     for (let post of posts) {
       const imagesResult = await pool.query(
         "SELECT image_url FROM post_images WHERE post_id = $1",
@@ -457,10 +469,10 @@ const getFriendsPosts = async (req, res) => {
       post.images = imagesResult.rows.map(r => r.image_url);
 
       const reactionsResult = await pool.query(
-        "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+        "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
         [post.post_id]
       );
-      post.reactions = reactionsResult.rows;
+      post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
     }
 
     return res.json({ posts });
@@ -469,6 +481,7 @@ const getFriendsPosts = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Get a single post by ID
 const getPostById = async (req, res) => {
@@ -506,13 +519,19 @@ const getPostById = async (req, res) => {
   }
 };
 
-// Get logged-in user's posts
 const getMyPosts = async (req, res) => {
   try {
     const user_id = req.user.user_id;
 
     const postsResult = await pool.query(
-      "SELECT post_id, caption, created_at FROM posts WHERE user_id = $1 ORDER BY created_at DESC",
+      `SELECT p.post_id, p.caption, p.created_at,
+              EXISTS (
+                SELECT 1 FROM post_reactions pr
+                WHERE pr.post_id = p.post_id AND pr.user_id = $1
+              ) AS "userLiked"
+       FROM posts p
+       WHERE p.user_id = $1
+       ORDER BY p.created_at DESC`,
       [user_id]
     );
 
@@ -526,10 +545,10 @@ const getMyPosts = async (req, res) => {
       post.images = imagesResult.rows.map(r => r.image_url);
 
       const reactionsResult = await pool.query(
-        "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+        "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
         [post.post_id]
       );
-      post.reactions = reactionsResult.rows;
+      post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
     }
 
     return res.json({ posts });
@@ -539,71 +558,63 @@ const getMyPosts = async (req, res) => {
   }
 };
 
-// Add a comment
-const addComment = async (req, res) => {
-  try {
-    const user_id = req.user.user_id;
-    const { post_id, comment_text } = req.body;
 
-    if (!comment_text || !post_id)
-      return res.status(400).json({ message: "Missing post_id or comment_text" });
-
-    const result = await pool.query(
-      "INSERT INTO post_comments (post_id, user_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
-      [post_id, user_id, comment_text]
-    );
-
-    return res.status(201).json({ message: "Comment added", comment: result.rows[0] });
-  } catch (err) {
-    console.error("addComment Error:", err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get comments for a post
-const getComments = async (req, res) => {
-  try {
-    const { post_id } = req.params;
-    const result = await pool.query(
-      `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_image
-       FROM post_comments c
-       JOIN users u ON c.user_id = u.user_id
-       WHERE c.post_id = $1
-       ORDER BY c.created_at ASC`,
-      [post_id]
-    );
-
-    return res.json({ comments: result.rows });
-  } catch (err) {
-    console.error("getComments Error:", err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
 
 const reactToPostController = async (req, res) => {
   try {
-    const user_id = req.user.user_id; // from verifyToken
-    const { post_id, reaction_type } = req.body;
+    const user_id = req.user.user_id;
+    const { post_id } = req.body;
+    if (!post_id) return res.status(400).json({ message: "Missing post_id" });
 
-    if (!post_id || !reaction_type) {
-      return res.status(400).json({ message: "Missing post_id or reaction_type" });
-    }
+    // Call model function
+    const result = await userModel.reactToPost(user_id, post_id);
 
-    // Call the model function
-    const result = await reactToPost(user_id, post_id, reaction_type);
-
-    // Optional: return updated reactions for frontend
-    const reactionsResult = await pool.query(
-      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+    // Get total likes
+    const reactionsResult = await userModel.pool.query(
+      "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
       [post_id]
     );
 
-    return res.json({ ...result, reactions: reactionsResult.rows });
+    return res.json({
+      liked: result.liked,
+      totalLikes: parseInt(reactionsResult.rows[0].count)
+    });
   } catch (err) {
     console.error("reactToPostController Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
+const getNotifications = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    const result = await pool.query(
+      `SELECT n.notification_id,
+              n.type,
+              n.actor_id AS sender_id,
+              u.username AS sender_username,
+              u.profile_image AS sender_profile_image,
+              n.post_id,
+              n.message,
+              n.created_at
+       FROM notifications n
+       JOIN users u ON n.actor_id = u.user_id
+       WHERE n.user_id = $1
+       ORDER BY n.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ notifications: result.rows });
+  } catch (err) {
+    console.error("getNotifications Error:", err);
+    res.status(500).json({ message: "Server error fetching notifications" });
+  }
+};
+
+
 
 
 module.exports = {
@@ -631,7 +642,6 @@ module.exports = {
   getPostById,
   getMyPosts,
   reactToPost,
-  addComment,
-  getComments,
-  reactToPostController
+  reactToPostController,
+  getNotifications,
 };

@@ -52,8 +52,9 @@ router.post("/feed/createPost", verifyToken, upload.array("images", 10), control
 // Get all posts by friends
 router.get("/feed/posts", verifyToken, controller.getFriendsPosts);
 
-// React to a post (like/love)
-router.post("/feed/react", verifyToken, reactToPostController);
+// React to a post (like)
+router.post("/feed/like", verifyToken, controller.reactToPostController);
+
 
 
 // Get single post with images and reactions
@@ -62,10 +63,30 @@ router.get("/feed/post/:post_id", verifyToken, controller.getPostById);
 // Get logged-in user's posts
 router.get("/feed/myPosts", verifyToken, controller.getMyPosts);
 
-// =================== COMMENTS ===================
-// Add a comment to a post
-router.post("/feed/comment", verifyToken, controller.addComment);
 
-// Get all comments for a post
-router.get("/feed/comments/:post_id", verifyToken, controller.getComments);
+// =================== NOTIFICATIONS ===================
+router.get("/notifications", verifyToken, controller.getNotifications);
+
+router.get("/notifications", verifyToken, async (req, res) => {
+  const user_id = req.user.user_id;
+
+  try {
+    const result = await pool.query(
+      `SELECT n.notification_id, n.type, n.sender_id, n.created_at,
+              u.username AS sender_username, u.profile_image AS sender_profile_image
+       FROM notifications n
+       JOIN users u ON n.sender_id = u.user_id
+       WHERE n.user_id = $1
+       ORDER BY n.created_at DESC`,
+      [user_id]
+    );
+
+    res.json({ notifications: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error fetching notifications" });
+  }
+});
+
+
 module.exports = router;

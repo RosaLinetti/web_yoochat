@@ -1,9 +1,8 @@
-// src/components/ContributeFeed.js
 import React, { useState, useEffect } from "react";
 import { getMyProfile } from "../api/api";
 import "./ContributeFeed.css";
 
-const API_URL = "http://localhost:3000"; // Backend URL
+const API_URL = "http://localhost:3000";
 
 function ContributeFeed() {
   const [posts, setPosts] = useState([]);
@@ -31,23 +30,24 @@ function ContributeFeed() {
   }, []);
 
   // Fetch posts
-  useEffect(() => {
-    async function fetchPosts() {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_URL}/feed/myPosts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        const formattedPosts = (data.posts || []).map((p) => ({
-          ...p,
-          images: p.images.map((img) => `${API_URL}/${img.replace(/\\/g, "/")}`),
-        }));
-        setPosts(formattedPosts);
-      } catch (err) {
-        console.error("Error fetching posts:", err);
-      }
+  const fetchPosts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/feed/myPosts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const formattedPosts = (data.posts || []).map((p) => ({
+        ...p,
+        images: p.images.map((img) => `${API_URL}/${img.replace(/\\/g, "/")}`),
+      }));
+      setPosts(formattedPosts);
+    } catch (err) {
+      console.error("Error fetching posts:", err);
     }
+  };
+
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -70,22 +70,13 @@ function ContributeFeed() {
       });
 
       const data = await res.json();
-      console.log("Upload response:", data);
       alert(data.message || "Post created successfully!");
 
       setCaption("");
       setImages([]);
 
       // Refresh posts
-      const postsRes = await fetch(`${API_URL}/feed/myPosts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const postsData = await postsRes.json();
-      const formattedPosts = (postsData.posts || []).map((p) => ({
-        ...p,
-        images: p.images.map((img) => `${API_URL}/${img.replace(/\\/g, "/")}`),
-      }));
-      setPosts(formattedPosts);
+      fetchPosts();
     } catch (err) {
       console.error("Add post error:", err);
       alert("Error adding post");
@@ -111,6 +102,17 @@ function ContributeFeed() {
         <button onClick={handleAddPost} disabled={loading}>
           {loading ? "Posting..." : "Add Post"}
         </button>
+        {images.length > 0 && (
+          <div className="previewImages">
+            {images.map((img, idx) => (
+              <img
+                key={idx}
+                src={URL.createObjectURL(img)}
+                alt={`Preview ${idx}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="postGrid">

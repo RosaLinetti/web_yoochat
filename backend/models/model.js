@@ -18,6 +18,29 @@ pool.connect((err, client, release) => {
   }
 });
 
+const createNotificationIfNotExists = async (user_id, actor_id, type, message, post_id = null) => {
+  try {
+    const query = post_id === null
+      ? `SELECT 1 FROM notifications WHERE user_id=$1 AND actor_id=$2 AND type=$3 AND post_id IS NULL`
+      : `SELECT 1 FROM notifications WHERE user_id=$1 AND actor_id=$2 AND type=$3 AND post_id=$4`;
+
+    const values = post_id === null ? [user_id, actor_id, type] : [user_id, actor_id, type, post_id];
+    const exists = await pool.query(query, values);
+
+    if (exists.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO notifications (user_id, actor_id, type, post_id, message, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())`,
+        [user_id, actor_id, type, post_id, message]
+      );
+    }
+  } catch (err) {
+    console.error("Notification Error:", err);
+    throw err;
+  }
+};
+
+
 // -------------------- Validations --------------------
 const isValidEmail = (email) => {
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|io|net|org|edu)$/;
@@ -70,6 +93,49 @@ const createUser = async (username, email, password, profileImagePath = null) =>
   return result.rows[0];
 };
 
+const createFriendRequest = async (user1_id, user2_id) => {
+  await pool.query(
+    "INSERT INTO friendship (user1_id, user2_id, status) VALUES ($1, $2, 'pending')",
+    [user1_id, user2_id]
+  );
+
+  await createNotificationIfNotExists(
+    user2_id,
+    user1_id,
+    "friend_request",
+    `You received a friend request from ${user1_id}`
+  );
+};
+
+const acceptFriendRequest = async (sender_id, receiver_id) => {
+  await pool.query(
+    "UPDATE friendship SET status = 'accepted' WHERE user1_id = $1 AND user2_id = $2 AND status = 'pending'",
+    [sender_id, receiver_id]
+  );
+
+  await createNotificationIfNotExists(
+    sender_id,
+    receiver_id,
+    "friend_accept",
+    `Your friend request was accepted.`
+  );
+};
+
+const declineFriendRequest = async (sender_id, receiver_id) => {
+  await pool.query(
+    "DELETE FROM friendship WHERE user1_id = $1 AND user2_id = $2 AND status = 'pending'",
+    [sender_id, receiver_id]
+  );
+
+  await createNotificationIfNotExists(
+    sender_id,
+    receiver_id,
+    "friend_decline",
+    `Your friend request was declined.`
+  );
+};
+
+
 // -------------------- Friendship --------------------
 const checkFriendshipExists = async (user1_id, user2_id) => {
   const result = await pool.query(
@@ -81,12 +147,9 @@ const checkFriendshipExists = async (user1_id, user2_id) => {
   return result.rows.length > 0;
 };
 
-const createFriendRequest = async (user1_id, user2_id) => {
-  await pool.query(
-    "INSERT INTO friendship (user1_id, user2_id, status) VALUES ($1, $2, 'pending')",
-    [user1_id, user2_id]
-  );
-};
+
+
+
 
 const checkPendingFriendRequest = async (sender_id, receiver_id) => {
   const result = await pool.query(
@@ -96,12 +159,7 @@ const checkPendingFriendRequest = async (sender_id, receiver_id) => {
   return result.rows.length > 0;
 };
 
-const acceptFriendRequest = async (sender_id, receiver_id) => {
-  await pool.query(
-    "UPDATE friendship SET status = 'accepted' WHERE user1_id = $1 AND user2_id = $2 AND status = 'pending'",
-    [sender_id, receiver_id]
-  );
-};
+
 
 const cancelFriendRequest = async (sender_id, receiver_id) => {
   await pool.query(
@@ -110,12 +168,7 @@ const cancelFriendRequest = async (sender_id, receiver_id) => {
   );
 };
 
-const declineFriendRequest = async (sender_id, receiver_id) => {
-  await pool.query(
-    "DELETE FROM friendship WHERE user1_id = $1 AND user2_id = $2 AND status = 'pending'",
-    [sender_id, receiver_id]
-  );
-};
+
 
 const unfriend = async (user1_id, user2_id) => {
   await pool.query(
@@ -276,18 +329,22 @@ const getFriendIds = async (user_id) => {
   );
   return friendsResult.rows.map(r => r.friend_id);
 };
-
-const getPostsByUserIds = async (userIds) => {
+const getPostsByUserIds = async (userIds, currentUserId) => {
   const postsResult = await pool.query(
-    `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image
+    `SELECT p.post_id, p.user_id, p.caption, p.created_at, u.username, u.profile_image,
+            EXISTS (
+              SELECT 1 FROM post_reactions pr 
+              WHERE pr.post_id = p.post_id AND pr.user_id = $2
+            ) AS "userLiked"
      FROM posts p
      JOIN users u ON p.user_id = u.user_id
      WHERE p.user_id = ANY($1::int[])
      ORDER BY p.created_at DESC`,
-    [userIds]
+    [userIds, currentUserId]
   );
 
   const posts = postsResult.rows;
+
   for (let post of posts) {
     const imagesResult = await pool.query(
       "SELECT image_url FROM post_images WHERE post_id = $1",
@@ -296,49 +353,58 @@ const getPostsByUserIds = async (userIds) => {
     post.images = imagesResult.rows.map(r => r.image_url);
 
     const reactionsResult = await pool.query(
-      "SELECT reaction_type, COUNT(*) AS count FROM post_reactions WHERE post_id = $1 GROUP BY reaction_type",
+      "SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = $1",
       [post.post_id]
     );
-    post.reactions = reactionsResult.rows;
+    post.reactions = reactionsResult.rows[0] ? Array(parseInt(reactionsResult.rows[0].count)).fill({}) : [];
   }
 
   return posts;
 };
 
-const reactToPost = async (user_id, post_id, reaction_type) => {
-  // Check if a reaction already exists
+const reactToPost = async (user_id, post_id) => {
+  // Check if user already liked the post
   const existing = await pool.query(
     "SELECT * FROM post_reactions WHERE post_id = $1 AND user_id = $2",
     [post_id, user_id]
   );
 
   if (existing.rows.length > 0) {
-    const currentReaction = existing.rows[0].reaction_type;
-
-    if (currentReaction === reaction_type) {
-      // Same reaction clicked again → remove it (unreact)
-      await pool.query(
-        "DELETE FROM post_reactions WHERE post_id = $1 AND user_id = $2",
-        [post_id, user_id]
-      );
-      return { message: "Reaction removed" };
-    } else {
-      // Different reaction → update it
-      await pool.query(
-        "UPDATE post_reactions SET reaction_type = $1, created_at = NOW() WHERE post_id = $2 AND user_id = $3",
-        [reaction_type, post_id, user_id]
-      );
-      return { message: "Reaction updated" };
-    }
-  } else {
-    // No existing reaction → insert new
+    // Unlike → remove reaction
     await pool.query(
-      "INSERT INTO post_reactions (post_id, user_id, reaction_type) VALUES ($1, $2, $3)",
-      [post_id, user_id, reaction_type]
+      "DELETE FROM post_reactions WHERE post_id = $1 AND user_id = $2",
+      [post_id, user_id]
     );
-    return { message: "Reaction added" };
+    return { liked: false };
+  } else {
+    // Like → add reaction
+    await pool.query(
+      "INSERT INTO post_reactions (post_id, user_id, reaction_type) VALUES ($1, $2, 'like')",
+      [post_id, user_id]
+    );
+
+    // Notify post owner (only if not liking own post)
+    const postOwnerResult = await pool.query(
+      "SELECT user_id FROM posts WHERE post_id = $1",
+      [post_id]
+    );
+
+    const postOwnerId = postOwnerResult.rows[0].user_id;
+
+    if (postOwnerId !== user_id) {
+      await pool.query(
+        `INSERT INTO notifications (user_id, actor_id, type, post_id, message, created_at)
+         VALUES ($1, $2, 'like', $3, $4, NOW())
+         ON CONFLICT (user_id, actor_id, type, post_id) DO NOTHING`,
+        [postOwnerId, user_id, post_id, `User ID ${user_id} reacted 💜 to your post.`]
+      );
+    }
+
+    return { liked: true };
   }
 };
+
+
 
 const getPostById = async (post_id) => {
   const postResult = await pool.query(
@@ -394,25 +460,22 @@ const getPostsByUser = async (user_id) => {
 
   return posts;
 };
-const addComment = async (user_id, post_id, comment_text) => {
-  const result = await pool.query(
-    "INSERT INTO post_comments (user_id, post_id, comment_text) VALUES ($1, $2, $3) RETURNING *",
-    [user_id, post_id, comment_text]
-  );
-  return result.rows[0];
-};
 
-const getCommentsByPostId = async (post_id) => {
+const getNotifications = async (user_id) => {
   const result = await pool.query(
-    `SELECT c.comment_id, c.comment_text, c.created_at, u.user_id, u.username, u.profile_image
-     FROM post_comments c
-     JOIN users u ON c.user_id = u.user_id
-     WHERE c.post_id = $1
-     ORDER BY c.created_at ASC`,
-    [post_id]
+    `SELECT DISTINCT ON (n.notification_id) 
+            n.notification_id, n.user_id, n.actor_id, n.type, n.post_id,
+            n.message, n.created_at, n.is_read,
+            u.username AS sender_username, u.profile_image AS sender_profile_image
+     FROM notifications n
+     JOIN users u ON n.actor_id = u.user_id
+     WHERE n.user_id = $1
+     ORDER BY n.notification_id DESC, n.created_at DESC`,
+    [user_id]
   );
   return result.rows;
 };
+
 
 // -------------------- Export --------------------
 module.exports = {
@@ -445,6 +508,5 @@ module.exports = {
   reactToPost,
   getPostById,
   getPostsByUser,
-  addComment,
-  getCommentsByPostId,
+  getNotifications,
 };

@@ -4,20 +4,30 @@
   gap: 8px;
 }
 
-/* Common purple button style */
+/* Base purple button style */
 .purple-btn {
-  background-color: #9333ea;  /* main purple */
-  color: #fff;
-  padding: 6px 20px;           /* oval shape */
+  background-color: #9333ea; /* main purple */
+  color: #fff ;               /* white text */
+  padding: 6px 20px;         /* oval shape */
   border: none;
   border-radius: 999px;
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;       /* prevent text wrap */
 }
 
-.purple-btn:hover {
-  background-color: #7c2be2;   /* darker purple on hover */
+/* Hover effect: slightly darker purple, subtle scale for feedback */
+.purple-btn:hover:not(:disabled) {
+  background-color: #7c2be2; /* slightly darker */
+  transform: translateY(-1px);
+}
+
+/* Disabled state */
+.purple-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #9333ea; /* maintain same purple */
 }
 
 /* Smaller padding for pending buttons if needed */

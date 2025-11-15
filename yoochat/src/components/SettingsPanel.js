@@ -1,7 +1,19 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // <-- import navigate
 import "./SettingsPanel.css";
 
 function SettingsPanel({ onSelectSetting }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Remove login info
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+
+  
+    navigate("/login"); 
+  };
+
   return (
     <div className="settingsPanel">
       <h2 className="settingsTitle">Settings ⚙️</h2>
@@ -27,15 +39,7 @@ function SettingsPanel({ onSelectSetting }) {
           </button>
         </li>
         <li>
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("username");
-              onSelectSetting("Logout");
-            }}
-          >
-            Logout
-          </button>
+          <button onClick={handleLogout}>Logout</button>
         </li>
       </ul>
     </div>

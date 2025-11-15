@@ -1,4 +1,3 @@
-// src/components/FriendActions.js
 import React, { useState } from "react";
 import {
   sendFriendRequest,
@@ -6,28 +5,17 @@ import {
   declineFriendRequest,
   cancelFriendRequest,
 } from "../api/api";
+import "./FriendActions.css"; // Ensure this file contains .purple-btn & .purple-btn-small
 
 const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) => {
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
 
-  // Base button style
-  const baseButtonStyle = {
-    padding: "6px 16px",
-    borderRadius: "999px",
-    border: "none",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer",
-    transition: "background 0.2s",
-  };
+  const alreadySent = sentRequests?.some(
+    (s) => s.receiver_id === user.user_id
+  );
 
-  const acceptStyle = { ...baseButtonStyle, backgroundColor: "#9333ea" };
-  const declineStyle = { ...baseButtonStyle, backgroundColor: "#7c2be2" };
-  const cancelStyle = { ...baseButtonStyle, backgroundColor: "#7c2be2" };
-  const addStyle = { ...baseButtonStyle, backgroundColor: "#9333ea" };
-
-  // Send Friend Request
+  // Handlers
   const handleAdd = async () => {
     setLoading(true);
     try {
@@ -40,12 +28,10 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
     setLoading(false);
   };
 
-  // Accept received friend request
   const handleAccept = async () => {
     setLoading(true);
     try {
       await acceptFriendRequest(user.sender_id, token);
-      // Pass the full user object so Home can update friends properly
       if (onActionComplete) onActionComplete(user.sender_id, "accepted", user);
     } catch (err) {
       console.error("Accept friend error:", err);
@@ -53,7 +39,6 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
     setLoading(false);
   };
 
-  // Decline received friend request
   const handleDecline = async () => {
     setLoading(true);
     try {
@@ -65,7 +50,6 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
     setLoading(false);
   };
 
-  // Cancel sent request
   const handleCancel = async () => {
     setLoading(true);
     try {
@@ -77,20 +61,13 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
     setLoading(false);
   };
 
-  // Disable Add Friend if already sent
-  const alreadySent = sentRequests?.some(
-    (s) => s.receiver_id === user.user_id
-  );
-
   // Render buttons
   if (type === "add") {
     return (
       <button
+        className="purple-btn"
         onClick={handleAdd}
         disabled={disabled || loading || alreadySent}
-        style={addStyle}
-        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7c2be2")}
-        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#9333ea")}
       >
         {disabled || alreadySent
           ? "Request Sent"
@@ -103,24 +80,20 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
 
   if (type === "pending") {
     return (
-      <div style={{ display: "flex", gap: "6px" }}>
+      <div className="friend-action">
         {user.sender_id && (
           <>
             <button
+              className="purple-btn purple-btn-small"
               onClick={handleAccept}
               disabled={loading}
-              style={acceptStyle}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7c2be2")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#9333ea")}
             >
               {loading ? "Processing..." : "Accept"}
             </button>
             <button
+              className="purple-btn purple-btn-small"
               onClick={handleDecline}
               disabled={loading}
-              style={declineStyle}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7c2be2")}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#9333ea")}
             >
               {loading ? "Processing..." : "Decline"}
             </button>
@@ -128,11 +101,9 @@ const FriendActions = ({ user, type, onActionComplete, token, sentRequests }) =>
         )}
         {user.receiver_id && (
           <button
+            className="purple-btn purple-btn-small"
             onClick={handleCancel}
             disabled={loading}
-            style={cancelStyle}
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#7c2be2")}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#9333ea")}
           >
             {loading ? "Cancelling..." : "Cancel"}
           </button>

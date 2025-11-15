@@ -8,7 +8,7 @@ const UserSearch = ({ token }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (query.trim().length < 2) {  // only search if 2+ letters
+    if (query.trim().length < 2) { 
       setResults([]);
       return;
     }

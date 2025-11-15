@@ -1,37 +1,42 @@
+// src/components/MyPostsFeed.js
 import React, { useEffect, useState } from "react";
-import { getFriendsPosts } from "../api/api";
-import "./FriendsFeed.css";
+import { getMyPosts } from "../api/api";
+import "./FriendsFeed.css"; // Reuse FriendsFeed CSS
 
 const API_URL = "http://localhost:3000";
 
-function FriendsFeed() {
+function MyPostsFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [likedPosts, setLikedPosts] = useState({}); // used → safe, no warning
+  const [likedPosts, setLikedPosts] = useState({});
 
-  // Fetch friends' posts
   useEffect(() => {
     async function fetchPosts() {
       setLoading(true);
       try {
-        const res = await getFriendsPosts();
+        const res = await getMyPosts();
+        console.log("Fetched posts:", res.posts);
+
         if (res.posts) {
           const formattedPosts = res.posts.map((post) => ({
             ...post,
+            // Fix image URLs
             images: (post.images || []).map((img) =>
               img.startsWith("http") ? img : `${API_URL}/${img.replace(/\\/g, "/")}`
             ),
             profile_image: post.profile_image
               ? post.profile_image.startsWith("http")
                 ? post.profile_image
-                : `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
+                : post.profile_image.startsWith("uploads/")
+                  ? `${API_URL}/${post.profile_image.replace(/\\/g, "/")}`
+                  : `${API_URL}/uploads/${post.profile_image.replace(/\\/g, "/")}`
               : `${API_URL}/avatar2.png`,
             reactionsCount: post.reactions ? post.reactions.length : 0,
           }));
 
           setPosts(formattedPosts);
 
-          // Initialize liked state (from backend)
+          // Initialize liked state
           const initialLikes = {};
           formattedPosts.forEach((p) => {
             initialLikes[p.post_id] = p.userLiked || false;
@@ -39,14 +44,14 @@ function FriendsFeed() {
           setLikedPosts(initialLikes);
         }
       } catch (err) {
-        console.error("Error fetching friends posts:", err);
+        console.error("Error fetching posts:", err);
       }
       setLoading(false);
     }
+
     fetchPosts();
   }, []);
 
-  // Handle Like button click
   const toggleLike = async (postId) => {
     try {
       const token = localStorage.getItem("token");
@@ -62,20 +67,14 @@ function FriendsFeed() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Something went wrong!");
 
-      // Update liked state locally
-      setLikedPosts((prev) => ({
-        ...prev,
-        [postId]: data.liked,
-      }));
+      // Update liked state
+      setLikedPosts((prev) => ({ ...prev, [postId]: data.liked }));
 
-      // Update reactions count in posts list
+      // Update reactions count
       setPosts((prevPosts) =>
-        prevPosts.map((p) => {
-          if (p.post_id === postId) {
-            return { ...p, reactionsCount: data.totalLikes };
-          }
-          return p;
-        })
+        prevPosts.map((p) =>
+          p.post_id === postId ? { ...p, reactionsCount: data.totalLikes } : p
+        )
       );
     } catch (err) {
       console.error("Error liking post:", err);
@@ -83,27 +82,31 @@ function FriendsFeed() {
     }
   };
 
-  if (loading) return <p style={{ textAlign: "center" }}>Loading feed...</p>;
-  if (!posts.length) return <p style={{ textAlign: "center" }}>No posts to show.</p>;
+  if (loading) return <p style={{ textAlign: "center" }}>Loading your posts...</p>;
+  if (!posts.length) return <p style={{ textAlign: "center" }}>No posts yet.</p>;
 
   return (
-    <div className="friendsFeed">
+    <div className="friendsFeed" style={{ gridTemplateColumns: "1fr", justifyItems: "center" }}>
       {posts.map((post) => (
-        <div key={post.post_id} className="postCard">
-
-          {/* ==== HEADER ==== */}
+        <div key={post.post_id} className="postCard" style={{ maxWidth: "600px" }}>
+          {/* Header */}
           <div className="postHeader">
             <div className="postHeaderLeft">
-              <img src={post.profile_image} alt={post.username} className="postAvatar" />
+              <img
+                src={post.profile_image}
+                alt={post.username}
+                className="postAvatar"
+                onError={(e) => (e.target.src = `${API_URL}/avatar2.png`)}
+              />
               <span className="postUsername">{post.username}</span>
             </div>
             <span className="postTime">{new Date(post.created_at).toLocaleString()}</span>
           </div>
 
-          {/* ==== CAPTION ==== */}
+          {/* Caption */}
           {post.caption && <p className="postCaption">{post.caption}</p>}
 
-          {/* ==== IMAGES ==== */}
+          {/* Images */}
           {post.images?.length > 0 && (
             <div className="postImages">
               {post.images.length === 1 ? (
@@ -123,22 +126,20 @@ function FriendsFeed() {
             </div>
           )}
 
-          {/* ==== LIKE BUTTON ==== */}
+          {/* Like button */}
           <div className="postActions">
             <button
-              className={likedPosts[post.post_id] ? "reacted" : ""}
+              className={likedPosts[post.post_id] ? "reacted" : "like-btn"}
               onClick={() => toggleLike(post.post_id)}
             >
               💜
             </button>
-
             <span className="like-count">{post.reactionsCount}</span>
           </div>
-
         </div>
       ))}
     </div>
   );
 }
 
-export default FriendsFeed;
+export default MyPostsFeed;

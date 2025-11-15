@@ -12,7 +12,7 @@
 .postCard {
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* ensures actions stay at bottom */
+  justify-content: space-between;
   width: 100%;
   max-width: 360px;
   border: 1px solid #e0d8f7;
@@ -22,7 +22,6 @@
   box-shadow: 0 2px 8px rgba(128, 0, 128, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 
 .postCard:hover {
   transform: translateY(-3px);
@@ -48,13 +47,13 @@
   height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #a569e3; /* purple border */
+  border: 2px solid #a569e3;
 }
 
 .postUsername {
   font-weight: 600;
   font-size: 1rem;
-  color: #4b0082; /* deep purple */
+  color: #4b0082;
 }
 
 .postTime {
@@ -70,86 +69,72 @@
   line-height: 1.4;
 }
 
-/* Carousel container */
+/* Carousel container for multiple images */
 .imageCarousel {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
-  position: relative;
   width: 100%;
-  height: 250px; /* fixed height for all images */
-  
-  /* Hide scrollbar for WebKit browsers */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* IE 10+ */
-}
+  height: 250px;
+  gap: 8px;
+  padding-bottom: 4px;
 
+  scrollbar-width: none; 
+  -ms-overflow-style: none;
+}
 .imageCarousel::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
+.carouselImage {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 300px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  scroll-snap-align: start;
+  transition: transform 0.2s ease;
+}
 
 .carouselImage:hover {
   transform: scale(1.03);
 }
 
-/* Carousel indicator (dots) */
-.carouselIndicator {
-  text-align: center;
-  margin-top: 6px;
-}
-
-.carouselIndicator .dot {
-  height: 8px;
-  width: 8px;
-  margin: 0 3px;
-  background-color: #c0a3f7;
-  border-radius: 50%;
-  display: inline-block;
-  transition: background-color 0.3s;
-}
-
-.carouselIndicator .dot.active {
-  background-color: #6a0dad; /* dark purple for active */
-}
-
-/* Actions */
+/* Actions container */
 .postActions {
   display: flex;
-  justify-content: flex-start; /* keeps buttons aligned left */
-  gap: 12px;
-  margin-top: auto; /* push actions to the bottom of the card */
-  flex-wrap: nowrap; /* no wrapping */
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
 }
 
-
-.postActions button {
-  background: #f3e6ff;
+/* NEW CONSTANT PURPLE HEART BUTTON */
+.like-btn {
+  background: none;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
   cursor: pointer;
-  font-weight: 500;
-  color: #6a0dad;
-  transition: background 0.2s ease;
-  white-space: nowrap; /* ensure button text doesn't break */
+  font-size: 24px;
+  color: #9333ea !important;  /* Always Purple */
+  transition: transform 0.15s ease-in-out;
+  padding: 0;
+}
+
+.like-btn:hover {
+  transform: scale(1.2);
+  color: #7c2be2 !important;   /* dark purple on hover */
+}
+
+/* Purple reactions count */
+.like-count {
+  font-size: 18px;
+  font-weight: bold;
+  color: #9333ea;
 }
 
 
-
-.postActions button:hover {
-  background: #e0c6ff;
-  transform: translateY(-1px);
-}
-
-/* Reactions count */
-.postReactions {
-  margin-top: 6px;
-  font-size: 0.85rem;
-  color: #555;
-}
 
 /* Single image styling */
 .singleImage {
@@ -157,4 +142,15 @@
   height: 320px;
   border-radius: 16px;
   object-fit: cover;
+}
+
+.myPostsFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  background-color: #f8f4ff; /* same light purple */
+  width: 100%; /* fits middle panel */
+  max-width: 720px; /* optional: max width for middle panel */
+  margin: 0 auto; /* center in middle panel */
 }

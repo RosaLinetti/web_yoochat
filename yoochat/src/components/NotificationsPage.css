@@ -1,0 +1,72 @@
+.notificationsWrapper {
+  padding: 1rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.notificationsHeader {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+  color: #9333ea;
+}
+
+.notificationsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notificationCard {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notificationCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notificationAvatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+}
+
+.notificationContent {
+  flex: 1;
+}
+
+.notificationMessage {
+  margin: 0 0 0.3rem 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.notificationTime {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.unread {
+  border-left: 4px solid #9333ea;
+}
+
+.read {
+  opacity: 0.8;
+}
+
+.loadingText,
+.noNotifications {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+  font-size: 1rem;
+}
