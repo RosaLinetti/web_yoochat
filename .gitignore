@@ -1,6 +1,4 @@
-# Node modules
-backend/node_modules/
-yoochat/node_modules/
+
 
 # Logs
 *.log
