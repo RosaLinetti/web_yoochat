@@ -39,17 +39,28 @@ module.exports = (io) => {
 
         const sender = await userModel.findUserById(userId);
 
-        const message = {
-          message_id: savedMessage.message_id,
-          sender_id: userId,
-          sender_name: sender.username,
-          content,
-          is_media,
-          timestamp: savedMessage.message_time,
-        };
+        // 1. Message object for the SENDER (Unencrypted for instant display)
+    const senderMessage = {
+      message_id: savedMessage.message_id,
+      sender_id: userId,
+      sender_name: sender.username,
+      content: content,
+      is_media,
+      timestamp: savedMessage.message_time,
+    };
 
-        io.to(`user_${to}`).emit("receive_message", message);
-        io.to(`user_${userId}`).emit("receive_message", message);
+    // 2. Message object for the RECEIVER 
+    const receiverMessage = {
+      message_id: savedMessage.message_id,
+      sender_id: userId,
+      sender_name: sender.username,
+      content: encryptedContent, 
+      timestamp: savedMessage.message_time,
+    };
+
+// 3. Emit
+io.to(`user_${to}`).emit("receive_message", receiverMessage); // Send ENCRYPTED to recipient
+io.to(`user_${userId}`).emit("receive_message", senderMessage); // Send UNENCRYPTED back to sender
       } catch (err) {
         console.error("Error sending message:", err.message);
       }

@@ -37,6 +37,17 @@ router.post("/friendship/declineRequest", verifyToken, controller.declineFriendR
 router.post("/message/send", verifyToken, controller.sendMessage);
 router.get("/message/conversation/:friend_id", verifyToken, controller.getConversation);
 
+// --- messaging section in routes.js ---
+
+// =================== MESSAGING ===================
+
+// NEW ROUTE: For pure text messages (uses the original sendMessage controller)
+router.post("/message/send/text", verifyToken, controller.sendMessage);
+
+// NEW ROUTE: For file/media messages (uses multer and the new controller)
+router.post("/message/send/media", verifyToken, upload.single("mediaFile"), controller.sendMediaMessage); 
+
+router.get("/message/conversation/:friend_id", verifyToken, controller.getConversation);
 // =================== BLOCKING ===================
 router.post("/block", verifyToken, controller.blockUser);
 router.post("/unblock", verifyToken, controller.unblockUser);

@@ -254,8 +254,136 @@ const getSentRequests = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+ 
+// -------------------- Messaging --------------------
+// controller.js (FIXED: Lines 293-311)
+
+// 1. SEND MEDIA MESSAGE (Handles /message/send/media)
+const sendMediaMessage = async (req, res) => {
+    try {
+        const sender_id = req.user.user_id;
+        const { receiver_id } = req.body; 
+        const file = req.file; 
+
+        if (!receiver_id || !file) return res.status(400).json({ message: "Missing receiver or file" });
+
+        const friendship = await userModel.checkFriendshipExists(sender_id, receiver_id);
+        if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
+        
+        // 1. Fix Windows paths
+        const filePath = file.path.replace(/\\/g, "/");
+        
+        // 2. ⚠️ FIX: ENCRYPT the file path before storing it for security
+        const encryptedPath = encryptHill(filePath, hillKey); // <--- ADD THIS LINE
+        
+        // Save the ENCRYPTED path to DB with is_media = true
+        await userModel.sendMessage(sender_id, receiver_id, encryptedPath, true); // <--- USE encryptedPath HERE
+
+        // We still return the plain path so the sender's client can display it immediately
+        return res.status(200).json({ message: "Media message sent successfully", path: filePath });
+    } catch (err) {
+        console.error("SendMediaMessage Error:", err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// 2. SEND TEXT MESSAGE (Handles /message/send/text)
+const sendMessage = async (req, res) => {
+  try {
+    const sender_id = req.user.user_id;
+    const { receiver_id, content } = req.body;
+
+    if (!receiver_id || !content) return res.status(400).json({ message: "Missing receiver_id or content" });
+
+    const friendship = await userModel.checkFriendshipExists(sender_id, receiver_id);
+    if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
+
+    // Encrypt the TEXT content
+    const encryptedMessage = encryptHill(content, hillKey);
+
+    // Save to DB with is_media = false
+    await userModel.sendMessage(sender_id, receiver_id, encryptedMessage, false);
+
+    return res.status(200).json({ message: "Message sent successfully" });
+  } catch (err) {
+    console.error("SendMessage Error:", err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// 3. GET CONVERSATION
+const getConversation = async (req, res) => {
+  try {
+    const user1_id = req.user.user_id;
+    const friend_id = parseInt(req.params.friend_id, 10);
+
+    const friendship = await userModel.checkFriendshipExists(user1_id, friend_id);
+    if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
+
+    const conversation = await userModel.getConversation(user1_id, friend_id);
+    
+    // Process messages: Decrypt TEXT, keep MEDIA path as is
+    const decryptedConversation = conversation.map((msg) => {
+        let finalContent = msg.content;
+
+        // Only decrypt if it is NOT media
+        if (!msg.is_media) {
+            try {
+                finalContent = decryptHill(msg.content, hillKey);
+            } catch (e) {
+                finalContent = "[Error Decrypting]";
+            }
+        }
+
+        return {
+                message_id: msg.message_id,
+                sender_id: msg.sender_id,
+                sender_name: msg.sender_name,
+                receiver_id: msg.receiver_id,
+                content: finalContent, // Decrypted Text OR Decrypted File Path
+                is_media: msg.is_media, // Important for frontend to know!
+                timestamp: msg.message_time,
+            };
+        });
+
+   return res.status(200).json({ conversation: decryptedConversation });
+    } catch (err) {
+        console.error("GetConversation Error:", err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
 
 // -------------------- Messaging --------------------
+// NEW FUNCTION: Handles media messages coming via the Multer route
+/* const sendMediaMessage = async (req, res) => {
+    try {
+        const sender_id = req.user.user_id;
+        // receiver_id comes from body, file path from req.file
+        const { receiver_id } = req.body; 
+        
+        // Multer's upload.single("mediaFile") saves the path to req.file.path
+        const filePath = req.file ? req.file.path : null; 
+
+        if (!receiver_id || !filePath) return res.status(400).json({ message: "Missing receiver or file" });
+
+        // Check friendship (necessary security check)
+        const friendship = await userModel.checkFriendshipExists(sender_id, receiver_id);
+        if (!friendship) return res.status(403).json({ message: "You are not friends with this user" });
+        
+        // Encrypt the FILE PATH, which will be stored as 'content' in the DB
+        const encryptedPath = encryptHill(filePath, hillKey); 
+        
+        // is_media is true, content is the encrypted file path
+        await userModel.sendMessage(sender_id, receiver_id, encryptedPath, true); 
+
+        return res.status(200).json({ message: "Media message sent successfully", path: filePath });
+    } catch (err) {
+        console.error("SendMediaMessage Error:", err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
+
 const sendMessage = async (req, res) => {
   try {
     const sender_id = req.user.user_id;
@@ -298,7 +426,7 @@ const getConversation = async (req, res) => {
     console.error("GetConversation Error:", err);
     return res.status(500).json({ message: "Server Error" });
   }
-};
+}; */
 
 // -------------------- Block / Unblock --------------------
 const blockUser = async (req, res) => {
@@ -631,6 +759,7 @@ module.exports = {
   listPendingRequests,
   getSentRequests,
   sendMessage,
+  sendMediaMessage,
   getConversation,
   blockUser,
   unblockUser,

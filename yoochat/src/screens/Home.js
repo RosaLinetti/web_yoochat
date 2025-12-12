@@ -260,6 +260,10 @@ function Home() {
             ) : (
               <ChatWindow
                 user={{ name: "Ralph Edwards", avatar: "/avatar2.png" }}
+                onSendMessage={() => console.log('Home: Placeholder chat window - Send Message.')}
+                // --- ADD THESE MISSING PROPS ---
+                onStartCall={() => console.log('Home: Placeholder - Cannot start call in default window.')}
+                onStartVideoCall={() => console.log('Home: Placeholder - Cannot start video call in default window.')}
               />
             )}
           </div>
